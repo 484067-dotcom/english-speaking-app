@@ -7,48 +7,156 @@ const topics = [
   {
     id: "school-life",
     label: "School Life",
-    firstQuestion: "What do you like about your school?"
+    firstQuestion: "What do you like about your school?",
+    modelAnswers: [
+      "I like my school because I can study with my friends.",
+      "I enjoy school events because they are exciting.",
+      "I like my teachers because they are kind."
+    ],
+    followQuestions: [
+      "What subject do you like?",
+      "Who do you usually talk with at school?",
+      "What is your favorite school event?"
+    ]
   },
   {
     id: "weekend",
     label: "Weekend",
-    firstQuestion: "What did you do last weekend?"
+    firstQuestion: "What did you do last weekend?",
+    modelAnswers: [
+      "I stayed home and relaxed last weekend.",
+      "I went shopping with my family last weekend.",
+      "I played sports with my friends last weekend."
+    ],
+    followQuestions: [
+      "Was it fun?",
+      "Who did you spend time with?",
+      "What do you want to do next weekend?"
+    ]
   },
   {
     id: "food",
     label: "Food",
-    firstQuestion: "What food do you like?"
+    firstQuestion: "What food do you like?",
+    modelAnswers: [
+      "I like curry because it is delicious.",
+      "I like ramen because it is hot and tasty.",
+      "I like sushi because it is fresh and delicious."
+    ],
+    followQuestions: [
+      "How often do you eat it?",
+      "Can you cook it?",
+      "Who do you usually eat it with?"
+    ]
   },
   {
     id: "club-activities",
     label: "Club Activities",
-    firstQuestion: "What club activity do you do?"
+    firstQuestion: "What club activity do you do?",
+    modelAnswers: [
+      "I am in the tennis club. I enjoy practicing with my friends.",
+      "I am in the brass band club. I like playing music.",
+      "I am in the art club. I like drawing pictures."
+    ],
+    followQuestions: [
+      "How often do you practice?",
+      "What is difficult about your club activity?",
+      "What do you like most about your club?"
+    ]
   },
   {
     id: "future-dreams",
     label: "Future Dreams",
-    firstQuestion: "What do you want to be in the future?"
+    firstQuestion: "What do you want to be in the future?",
+    modelAnswers: [
+      "I want to be a nurse because I want to help people.",
+      "I want to be a teacher because I like children.",
+      "I want to work in an office because I am interested in business."
+    ],
+    followQuestions: [
+      "Why do you want to do that job?",
+      "What do you need to study for your dream?",
+      "Who inspired you?"
+    ]
   },
   {
     id: "travel",
     label: "Travel",
-    firstQuestion: "Where do you want to travel?"
+    firstQuestion: "Where do you want to travel?",
+    modelAnswers: [
+      "I want to visit Kyoto because I like Japanese history.",
+      "I want to go to Okinawa because the sea is beautiful.",
+      "I want to visit Tokyo because there are many interesting places."
+    ],
+    followQuestions: [
+      "Who do you want to go with?",
+      "What do you want to do there?",
+      "How long do you want to stay?"
+    ]
   },
   {
     id: "ai-education",
     label: "AI and Education",
-    firstQuestion: "Do you think AI is useful for studying English?"
+    firstQuestion: "Do you think AI is useful for studying English?",
+    modelAnswers: [
+      "I think AI is useful because it can help me practice English.",
+      "I think AI is helpful because I can study anytime.",
+      "I think AI is useful, but we also need to think by ourselves."
+    ],
+    followQuestions: [
+      "How do you use AI for studying?",
+      "What is good about using AI?",
+      "Do you think students should use AI at school?"
+    ]
+  }
+];
+
+const keywordResponses = [
+  {
+    keywords: ["tennis", "baseball", "soccer", "basketball", "sport"],
+    reaction: "That sounds active and fun.",
+    model: "I enjoy playing sports because it is fun and exciting.",
+    follow: "How often do you practice?"
+  },
+  {
+    keywords: ["movie", "anime", "netflix", "youtube"],
+    reaction: "That sounds interesting.",
+    model: "I watched a movie at home, and it was very interesting.",
+    follow: "What kind of movies or anime do you like?"
+  },
+  {
+    keywords: ["friend", "friends"],
+    reaction: "That sounds nice.",
+    model: "I enjoyed spending time with my friends.",
+    follow: "What do you usually do with your friends?"
+  },
+  {
+    keywords: ["family", "mother", "father", "sister", "brother"],
+    reaction: "That is nice.",
+    model: "I spent time with my family, and I had a good time.",
+    follow: "What do you like to do with your family?"
+  },
+  {
+    keywords: ["study", "english", "math", "homework"],
+    reaction: "Good effort.",
+    model: "I studied hard because I wanted to improve my skills.",
+    follow: "What subject do you want to improve?"
+  },
+  {
+    keywords: ["nurse", "teacher", "doctor", "office", "business"],
+    reaction: "That is a good dream.",
+    model: "I want to do that job because I want to help people.",
+    follow: "What do you need to do for your dream?"
   }
 ];
 
 export default function Home() {
   const [selectedTopic, setSelectedTopic] = useState(topics[0]);
   const [messages, setMessages] = useState([]);
-  const [currentQuestion, setCurrentQuestion] = useState(topics[0].firstQuestion);
   const [studentAnswer, setStudentAnswer] = useState("");
   const [isListening, setIsListening] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [finished, setFinished] = useState(false);
+  const [turnCount, setTurnCount] = useState(0);
 
   const recognitionRef = useRef(null);
 
@@ -71,22 +179,24 @@ export default function Home() {
   function startPractice() {
     const firstMessage = {
       role: "assistant",
-      text: currentQuestion
+      text: selectedTopic.firstQuestion
     };
 
     setMessages([firstMessage]);
     setStudentAnswer("");
     setFinished(false);
-    speak(currentQuestion);
+    setTurnCount(0);
+    speak(selectedTopic.firstQuestion);
   }
 
   function handleTopicChange(e) {
     const topic = topics.find((t) => t.id === e.target.value);
     setSelectedTopic(topic);
-    setCurrentQuestion(topic.firstQuestion);
     setMessages([]);
     setStudentAnswer("");
     setFinished(false);
+    setTurnCount(0);
+    window.speechSynthesis.cancel();
   }
 
   function startListening() {
@@ -95,7 +205,7 @@ export default function Home() {
 
     if (!SpeechRecognition) {
       alert(
-        "This browser does not support speech recognition. Please use Chrome or Safari with speech input enabled."
+        "This browser does not support speech recognition. Please use keyboard voice input or type your answer."
       );
       return;
     }
@@ -115,8 +225,7 @@ export default function Home() {
       setStudentAnswer(text);
     };
 
-    recognition.onerror = (event) => {
-      console.error(event.error);
+    recognition.onerror = () => {
       setIsListening(false);
       alert("Speech recognition failed. Please try again.");
     };
@@ -129,55 +238,50 @@ export default function Home() {
     recognition.start();
   }
 
-  async function sendAnswer() {
+  function makeReply(answer) {
+    const lowerAnswer = answer.toLowerCase();
+
+    const matched = keywordResponses.find((item) =>
+      item.keywords.some((keyword) => lowerAnswer.includes(keyword))
+    );
+
+    if (matched) {
+      return `${matched.reaction} You can also say, "${matched.model}" ${matched.follow}`;
+    }
+
+    const model =
+      selectedTopic.modelAnswers[turnCount % selectedTopic.modelAnswers.length];
+
+    const follow =
+      selectedTopic.followQuestions[turnCount % selectedTopic.followQuestions.length];
+
+    return `Good answer. You can also say, "${model}" ${follow}`;
+  }
+
+  function sendAnswer() {
     if (!studentAnswer.trim()) {
       alert("Please answer first.");
       return;
     }
 
-    const newStudentMessage = {
+    const studentMessage = {
       role: "student",
       text: studentAnswer
     };
 
-    const updatedMessages = [...messages, newStudentMessage];
+    const reply = makeReply(studentAnswer);
+
+    const assistantMessage = {
+      role: "assistant",
+      text: reply
+    };
+
+    const updatedMessages = [...messages, studentMessage, assistantMessage];
+
     setMessages(updatedMessages);
-    setIsLoading(true);
-
-    try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          topic: selectedTopic.label,
-          messages: updatedMessages,
-          studentAnswer
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error("API request failed.");
-      }
-
-      const data = await response.json();
-
-      const assistantMessage = {
-        role: "assistant",
-        text: data.reply
-      };
-
-      setMessages([...updatedMessages, assistantMessage]);
-      setCurrentQuestion(data.reply);
-      setStudentAnswer("");
-      speak(data.reply);
-    } catch (error) {
-      console.error(error);
-      alert("Sorry, something went wrong. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+    setStudentAnswer("");
+    setTurnCount(turnCount + 1);
+    speak(reply);
   }
 
   function finishPractice() {
@@ -188,8 +292,8 @@ export default function Home() {
   function resetPractice() {
     setMessages([]);
     setStudentAnswer("");
-    setCurrentQuestion(selectedTopic.firstQuestion);
     setFinished(false);
+    setTurnCount(0);
     window.speechSynthesis.cancel();
   }
 
@@ -216,7 +320,21 @@ export default function Home() {
 
         <div className="buttonRow">
           <button onClick={startPractice}>Start</button>
-          <button onClick={() => speak(currentQuestion)}>Read Again</button>
+          <button
+            onClick={() => {
+              const lastAssistantMessage = [...messages]
+                .reverse()
+                .find((m) => m.role === "assistant");
+
+              if (lastAssistantMessage) {
+                speak(lastAssistantMessage.text);
+              } else {
+                speak(selectedTopic.firstQuestion);
+              }
+            }}
+          >
+            Read Again
+          </button>
           <button className="secondary" onClick={resetPractice}>
             Reset
           </button>
@@ -262,9 +380,7 @@ export default function Home() {
                 {isListening ? "Listening..." : "Speak"}
               </button>
 
-              <button onClick={sendAnswer} disabled={isLoading}>
-                {isLoading ? "Thinking..." : "Send"}
-              </button>
+              <button onClick={sendAnswer}>Send</button>
 
               <button className="finish" onClick={finishPractice}>
                 Finish
